@@ -1,29 +1,23 @@
-package com.px.origin;
+package com.px.ldcmr;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 
-import javax.naming.ldap.SortControl;
-
-import org.omg.PortableInterceptor.DISCARDING;
 class ListNode {
 	      int val;
 	      ListNode next;
 	      ListNode(int x) { val = x; }
 	  }
+
 class TreeNode {
      int val;
      TreeNode left;
      TreeNode right;
      TreeNode(int x) { val = x; }
  }
+
 public class Solution {
 	public List<List<Integer>> combine(int n, int k) {
 		List<List<Integer>> ret = new ArrayList<List<Integer>>();

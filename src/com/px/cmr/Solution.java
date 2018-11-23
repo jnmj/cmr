@@ -1,59 +1,22 @@
 package com.px.cmr;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 
-import javax.naming.ldap.SortControl;
-
-import org.omg.PortableInterceptor.DISCARDING;
-
+class ListNode {
+	      int val;
+	      ListNode next;
+	      ListNode(int x) { val = x; }
+	  }
+class TreeNode {
+     int val;
+     TreeNode left;
+     TreeNode right;
+     TreeNode(int x) { val = x; }
+ }
 public class Solution {
-	
-	public int getFactorial(int n) {
-		if(n==0) return 1;
-		int ret = 1;
-		for(int i=1;i<=n;i++) {
-			ret*=i;
-		}
-		return ret;
-	}
-	
-	public int getCombineNum(int n, int k) {
-		if(k==0||k==n) return 1;
-		int a = 1;
-		for(int i=0;i<k;i++) {
-			a*=n-i;
-		}
-		return a/getFactorial(k);
-	}
-	
-	public int calcCrossLoadByFormula(int _K, int _P, int _Q, int _M, int _r) {
-		double K = _K;
-		double P = _P;
-		double Q = _Q;
-		double M = _M;
-		double r = _r;
-		
-		return (int) (Q*M/r*(1-r/K)*(1-getCombineNum(_K/_P, _r+1)*P/getCombineNum(_K, _r+1)));
-	}
-	
-	public int calcIntraLoadByFormula(int _K, int _P, int _Q, int _M, int _r) {
-		double K = _K;
-		double P = _P;
-		double Q = _Q;
-		double M = _M;
-		double r = _r;
-		
-		return (int) (Q*M/r*(1-r/K)*getCombineNum(_K/_P, _r+1)*P/getCombineNum(_K, _r+1));
-	}
-	
 	public List<List<Integer>> combine(int n, int k) {
 		List<List<Integer>> ret = new ArrayList<List<Integer>>();
         int[] nums = new int[n];
@@ -76,8 +39,116 @@ public class Solution {
 		}
 		
 	}
+	public boolean containsNearbyDuplicate(int[] nums, int k) {
+        if(nums==null||nums.length==0) return false;
+		Set<Integer> set = new HashSet<Integer>();
+        for(int i=0;i<nums.length;i++){
+        	if(set.contains(nums[i])){
+        		return true;
+        	}
+        	if(i>=k) {
+        		set.remove(nums[i-k]);
+        	}
+        	set.add(nums[i]);
+        }
+		return false;
+    }
+	public static ListNode reverseList(ListNode head) {
+        if(head==null||head.next==null){
+        	return head;
+        }
+        ListNode pre=head;
+        ListNode cur = head.next;
+        ListNode tmp;
+        while(cur!=null){
+        	tmp = cur.next;
+        	cur.next=pre;
+        	pre = cur;
+        	cur = tmp;
+        }
+        return pre;
+    }
 	
+	public int maxProduct(int[] nums) {
+        if(nums==null||nums.length==0){
+        	return 0;
+        }
+        int maxMul = 1;
+        int minMul = 1;
+        int ret = Integer.MIN_VALUE;
+        for(int i=0;i<nums.length;i++){
+        	int a = maxMul*nums[i];
+        	int b = minMul*nums[i];
+        	maxMul = Math.max(Math.max(a, b),nums[i]);
+        	minMul = Math.min(Math.min(a, b),nums[i]);
+        	ret = Math.max(ret, maxMul);
+        }
+		return ret;
+    }
+	
+	public int[] searchRange(int[] nums, int target) {
+        int[] ret = new int[2];
+        int i=0,j=nums.length-1;
+        int mid;
+        while(i<=j) {
+        	mid=(i+j)/2;
+        	if(target>nums[mid]) {
+        		i=mid+1;
+        	}else {
+        		j=mid-1;
+        	}
+        }
+        ret[0] = j+1;
+        i=0;
+        j=nums.length-1;
+        while(i<=j) {
+        	mid=(i+j)/2;
+        	if(target<nums[mid]) {
+        		j=mid-1;
+        	}else {
+        		i=mid+1;
+        	}
+        }
+        ret[1] = i-1;
+        if(ret[0]>ret[1]) {
+        	ret[0]=-1;
+        	ret[1]=-1;
+        }
+        return ret;
+    }	
+	
+public static String multiply(String num1, String num2) {
+		int[] d = new int[num1.length()+num2.length()];
+		int a,b;
+		for(int i=num1.length()-1;i>=0;i--) {
+			a = num1.charAt(i)-'0';
+			for(int j=num2.length()-1;j>=0;j--) {
+				b = num2.charAt(j)-'0';
+				d[i+j+1]+=a*b;
+			}
+		}
+		int r=0,p=0;
+		for(int i=d.length-1;i>=0;i--) {
+			r=(p+d[i])%10;
+			p=(p+d[i])/10;
+			d[i]=r;
+		}
+        StringBuilder builder = new StringBuilder();
+        
+        int k=0;
+        for(;k<d.length;k++) {
+        	if(d[k]!=0) break;
+        }
+        if(k==d.length) return new String("0");
+        for(int i=k;i<d.length;i++) {
+        	builder.append(d[i]);
+        }
+        return builder.toString();
+    }
 	public static void main(String[] args) {
+		ListNode head= new ListNode(1);
+		head.next=new ListNode(2);
+		reverseList(head);
 	}
 }
 

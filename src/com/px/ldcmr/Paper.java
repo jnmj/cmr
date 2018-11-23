@@ -1,27 +1,12 @@
-package com.px.origin;
+package com.px.ldcmr;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.TreeMap;
+import java.util.*;
 
 class Constants{
 	public static int M=6;
-	public static int K=4;
+	public static int K=3;
 	public static int Q=K;
-	public static int pK=2;
-	public static int rK=2;
+	public static int r=2;
 	public static int st=1;
 }
 
@@ -159,7 +144,7 @@ class FileManager{
 	}
 	
 	public void fillNodes(List<Node> nodeList, List<List<Integer>> combine) {
-		for(int i=0;i<Constants.K;i++) {
+		for(int i = 0; i< Constants.K; i++) {
 			nodeList.add(new Node(i+1));
 		}
 		for(int i=0;i<combine.size();i++) {
@@ -169,18 +154,18 @@ class FileManager{
 		}
 		
 		System.out.println("\nnode allFiles:");
-		for(int i=0;i<Constants.K;i++) {
+		for(int i = 0; i< Constants.K; i++) {
 			nodeList.get(i).printAllFiles();
 		}
 	}
 	
 	public void updateNodes(List<Node> nodeList) {
-		for(int i=0;i<Constants.K;i++) {
+		for(int i = 0; i< Constants.K; i++) {
 			nodeList.get(i).updateMappedFiles(this);
 		}
 		
 		System.out.println("\nnode mappedFiles:");
-		for(int i=0;i<Constants.K;i++) {
+		for(int i = 0; i< Constants.K; i++) {
 			System.out.println(nodeList.get(i).num+"  "+nodeList.get(i).mappedFiles.size());
 			nodeList.get(i).printMappedFiles();
 		}
@@ -190,7 +175,7 @@ class FileManager{
 		this.nodeList=nodeList;
 		this.partNum = combine.size();
 		partSize = Constants.M/partNum;
-		for(int i=0;i<Constants.M;i++) {
+		for(int i = 0; i< Constants.M; i++) {
 			allFile.add(new File(i+1));
 		}
 		for(int i=0;i<combine.size();i++) {
@@ -200,15 +185,15 @@ class FileManager{
 		
 		fillNodes(nodeList, combine);
 		
-		if(Constants.st==1) {
+		/*if(Constants.st==1) {
 			Solution st = new Solution();
-			List<List<Integer>> partComb = st.combine(Constants.K, Constants.rK);
+			List<List<Integer>> partComb = st.combine(Constants.K, Constants.r);
 			for(int i=0;i<partComb.size();i++) {
 				partCombCount.put(partComb.get(i), 0);
 			}
 			
 			for(int i=0;i<combine.size();i++) {
-				List<List<Integer>> comb = st.combine(Constants.pK, Constants.rK);
+				List<List<Integer>> comb = st.combine(Constants.pK, Constants.r);
 				List<List<Integer>> candidates = new ArrayList<>();
 				List<Integer> selected = null;
 				for(int k=0;k<comb.size();k++) {
@@ -265,12 +250,12 @@ class FileManager{
 			while(true) {
 				for(int j=0;j<nodeList.size();j++) {
 					if(x[j]%2==0) {
-						if(x[j]>0&&x[j]<=2*depth&&shortFile2combine.get(nodeList.get(j).allFiles.subList((x[j]/2-1)*partSize, (x[j]/2)*partSize)).size()<Constants.rK) {
+						if(x[j]>0&&x[j]<=2*depth&&shortFile2combine.get(nodeList.get(j).allFiles.subList((x[j]/2-1)*partSize, (x[j]/2)*partSize)).size()<Constants.r) {
 							shortFile2combine.get(nodeList.get(j).allFiles.subList((x[j]/2-1)*partSize, x[j]/2*partSize)).add(nodeList.get(j).num);
 						}
 						x[j]+=1;
 					}else {
-						while(x[j]<2*depth&&shortFile2combine.get(nodeList.get(j).allFiles.subList(x[j]/2*partSize, (x[j]/2+1)*partSize)).size()>=Constants.rK) {
+						while(x[j]<2*depth&&shortFile2combine.get(nodeList.get(j).allFiles.subList(x[j]/2*partSize, (x[j]/2+1)*partSize)).size()>=Constants.r) {
 							x[j]+=2;
 						}
 						x[j]+=1;
@@ -298,14 +283,14 @@ class FileManager{
 				}
 			}
 			
-		}
+		}*/
 		
 		updateNodes(nodeList);
 		
 		printC2F();
 		printF2C();
-		printShortC2F();
-		printShortF2C();
+		//printShortC2F();
+		//printShortF2C();
 	}
 	public List<File> getPart(int num){
 		return allFile.subList((num-1)*partSize, num*partSize);
@@ -469,7 +454,7 @@ class Node{
 	
 	public boolean checkFinish() {
 		boolean ret = true;
-		for(int i=1;i<=Constants.M;i++) {
+		for(int i = 1; i<= Constants.M; i++) {
 			if(mappedFiles.contains(i)||decodeResult.contains(i)) {
 				continue;
 			}else {
@@ -496,26 +481,26 @@ public class Paper{
 	
 	public static int run() {
 		Solution st = new Solution();
-		List<List<Integer>> combine = st.combine(Constants.K, Constants.pK);
+		List<List<Integer>> combine = st.combine(Constants.K, Constants.r);
 		List<Node> nodeList = new ArrayList<>();
 		FileManager manager = new FileManager(combine, nodeList);
 		Channel channel = new Channel();
 		
-		List<List<Integer>> shufferCombine = st.combine(Constants.K, Constants.rK+1);
-		for(int i=0;i<shufferCombine.size();i++) {
+		List<List<Integer>> shuffleCombine = st.combine(Constants.K, Constants.r+1);
+		for(int i=0;i<shuffleCombine.size();i++) {
 			Map<Integer, Integer> count = new HashMap<>();
-			for(int y=0;y<shufferCombine.get(i).size();y++) {
-				count.put(shufferCombine.get(i).get(y), 0);
+			for(int y=0;y<shuffleCombine.get(i).size();y++) {
+				count.put(shuffleCombine.get(i).get(y), 0);
 			}
-			for(int j:shufferCombine.get(i)) {
+			for(int j:shuffleCombine.get(i)) {
 				List<Integer> other = new ArrayList<>();
-				for(int x:shufferCombine.get(i)) {
+				for(int x:shuffleCombine.get(i)) {
 					if(x!=j) other.add(x);
 				}
 				for(int z:other) {
 					nodeList.get(z-1).vkses.add(new ArrayList<>());
 				}
-				List<File> subFiles = manager.shortCombine2file.get(other);
+				List<File> subFiles = manager.combine2file.get(other);
 				if(subFiles==null||subFiles.size()==0) continue;
 				for(int l=0;l<subFiles.size();l++) {
 					nodeList.get(other.get(l%other.size())-1).vkses.get(count.get(other.get(l%other.size()))).add(new VKS(j, other.get(l%other.size()), subFiles.get(l)));
@@ -525,9 +510,9 @@ public class Paper{
 				}
 			}
 			
-			List<Coded> medium = new ArrayList<>(); 
-			List<Coded> randomCode = new ArrayList<>(); 
-			for(int j:shufferCombine.get(i)) {
+			List<Coded> medium = new ArrayList<>();
+			List<Coded> randomCode = new ArrayList<>();
+			for(int j:shuffleCombine.get(i)) {
 				Node node = nodeList.get(j-1);
 				int col=0;
 				while(true) {
@@ -544,8 +529,8 @@ public class Paper{
 				}
 				node.vkses.clear();
 			}
-			List<List<Integer>> randomCombine = st.combine(Constants.rK+1, Constants.rK);
-			for(int j=0;j<Constants.rK;j++) {
+			List<List<Integer>> randomCombine = st.combine(Constants.r+1, Constants.r);
+			for(int j = 0; j< Constants.r; j++) {
 				List<Integer> comb = randomCombine.get(j);
 				Coded downLinkCoded = new Coded();
 				for(int x=0;x<comb.size();x++) {
@@ -555,7 +540,7 @@ public class Paper{
 				randomCode.add(downLinkCoded);
 			}
 			
-			for(int j:shufferCombine.get(i)) {
+			for(int j:shuffleCombine.get(i)) {
 				int totalCnt=0;
 				Map<Integer, Integer> cnt = new HashMap<>();
 				for(int x=0;x<randomCode.size();x++) {
