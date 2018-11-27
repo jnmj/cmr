@@ -1,15 +1,10 @@
-package com.px.cmr;
+package com.px.cwdc;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 class Constants {
-    public static int M = 6;
-    public static int K = 3;
+    public static int M = 24;
+    public static int K = 4;
     public static int Q = K;
     public static int r = 2;
 }
@@ -161,12 +156,18 @@ class Coded {
         return "Coded[src=" + src + ", t=" + targets + ", f=" + files + "]";
     }
 
-    public void merge(Coded coded) {
-        if (coded.files.isEmpty()) return;
-        for (int i = 0; i < coded.files.size(); i++) {
-            targets.add(coded.targets.get(i));
-            files.add(coded.files.get(i));
+    public static Coded merge(Coded c1, Coded c2) {
+        Coded coded = new Coded();
+        coded.src = -1;
+        for (int i = 0; i < c1.files.size(); i++) {
+            coded.targets.add(c1.targets.get(i));
+            coded.files.add(c1.files.get(i));
         }
+        for (int i = 0; i < c2.files.size(); i++) {
+            coded.targets.add(c2.targets.get(i));
+            coded.files.add(c2.files.get(i));
+        }
+        return coded;
     }
 }
 
@@ -200,8 +201,8 @@ class Channel {
         });
     }
 
-    public void printCodes() {
-        System.out.println("\nchannel codeds:");
+    public void printCodes(boolean uplink) {
+        System.out.println("\n"+(uplink?"uplink":"downlink")+" codeds:");
         for (Coded coded : codeds) {
             System.out.println(coded);
         }
@@ -248,6 +249,57 @@ class Node {
             return null;
         }
         return null;
+    }
+
+    public void decodeRandom(List<Coded> list) {
+        int[] done = new int[list.size()];
+        while (unFinish(done)) {
+            for (int i = 0; i < list.size(); i++) {
+                if(done[i]==0){
+                    Integer ret = decodeRandomSingle(list.get(i));
+                    if(ret==0){
+                        done[i]=1;
+                    }else if(ret==-2){
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean unFinish(int[] done) {
+        int ret = 1;
+        for (int i = 0; i < done.length; i++) {
+            ret*=done[i];
+        }
+        return ret==0;
+    }
+
+    public Integer decodeRandomSingle(Coded coded) {
+        if(mappedFiles.size()+decodeResult.size()==Constants.M) return -2;
+        int cnt = 0;
+        for (int i = 0; i < coded.files.size(); i++) {
+            if (mappedFiles.contains(coded.files.get(i))
+            || (decodeResult.contains(coded.files.get(i)) && coded.targets.get(i)-'a'+1 == num)) cnt++;
+        }
+        if (cnt == coded.files.size() - 1) {
+            for (int i = 0; i < coded.files.size(); i++) {
+                if (mappedFiles.contains(coded.files.get(i))
+                        || (decodeResult.contains(coded.files.get(i)) && coded.targets.get(i)-'a'+1 == num)) {
+                    continue;
+                }else{
+                    if (coded.targets.get(i) - 'a' + 1 == num) {
+                        decodeResult.add(coded.files.get(i));
+                        return 0;
+                    } else {
+                        return -1;
+                    }
+                }
+            }
+        } else {
+            return -1;
+        }
+        return -1;
     }
 
     public void printMappedFiles() {
@@ -314,12 +366,13 @@ class VKS {
 
 public class Paper {
 
-    public static int run() {
+    public static void run() {
         Solution st = new Solution();
         List<List<Integer>> combine = st.combine(Constants.K, Constants.r);
         List<Node> nodeList = new ArrayList<>();
         FileManager manager = new FileManager(combine, nodeList);
-        Channel channel = new Channel();
+        Channel uplink = new Channel();
+        Channel downlink = new Channel();
 
         List<List<Integer>> shuffleCombine = st.combine(Constants.K, Constants.r + 1);
         for (int i = 0; i < shuffleCombine.size(); i++) {
@@ -346,6 +399,10 @@ public class Paper {
             }
 
             List<Coded> medium = new ArrayList<>();
+            TreeMap<Integer, List<Coded>> map = new TreeMap<>();
+            for (int j : shuffleCombine.get(i)) {
+                map.put(j, new ArrayList<>());
+            }
             for (int j : shuffleCombine.get(i)) {
                 Node node = nodeList.get(j - 1);
                 int col = 0;
@@ -357,23 +414,37 @@ public class Paper {
                         }
                     }
                     if (coded.files.isEmpty()) break;
-                    medium.add(coded);
-                    channel.put(coded);
+                    map.get(j).add(coded);
+                    uplink.put(coded);
                     col++;
                 }
                 node.vkses.clear();
             }
 
-            for (int j : shuffleCombine.get(i)) {
-                for (int x = 0; x < medium.size(); x++) {
-                    Integer decode = nodeList.get(j - 1).decode(medium.get(x));
+            int cnt=0;
+            while (true) {
+                List<Coded> tmp = new ArrayList<>();
+                for (Integer node : map.keySet()) {
+                    if(cnt>=map.get(node).size()) continue;
+                    tmp.add(map.get(node).get(cnt));
                 }
+                if(tmp.isEmpty()) break;
+                for (int b = 0; b < tmp.size()-1; b++) {
+                    Coded merge = Coded.merge(tmp.get(b), tmp.get(b + 1));
+                    medium.add(merge);
+                    downlink.put(merge);
+                }
+                cnt++;
             }
 
+            for (int j : shuffleCombine.get(i)) {
+                nodeList.get(j - 1).decodeRandom(medium);
+            }
         }
 
         //channel.sort();
-        channel.printCodes();
+        uplink.printCodes(true);
+        downlink.printCodes(false);
         System.out.println();
 
         boolean finish = true;
@@ -390,7 +461,6 @@ public class Paper {
         for (int i = 0; i < nodeList.size(); i++) {
             nodeList.get(i).printAfterFinished();
         }
-        return channel.getLoad();
 
     }
 
