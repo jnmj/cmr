@@ -1,13 +1,9 @@
-package com.px.cwdc;
+package com.px.p1.cwdc;
+
+import com.px.p1.Constants;
+import com.px.p1.Solution;
 
 import java.util.*;
-
-class Constants {
-    public static int M = 24;
-    public static int K = 4;
-    public static int Q = K;
-    public static int r = 2;
-}
 
 class File {
     int num;
@@ -136,6 +132,7 @@ class FileManager {
 
 class Coded {
     int src;
+    int bits;
     List<Character> targets = new ArrayList<>();
     List<Integer> files = new ArrayList<>();
 
@@ -168,6 +165,15 @@ class Coded {
             coded.files.add(c2.files.get(i));
         }
         return coded;
+    }
+
+    public int calcBits(Map<Integer, Integer> density) {
+        int maxNum =0;
+        for (int i = 0; i < targets.size(); i++) {
+            maxNum = Math.max(maxNum, density.get(targets.get(i)-'a'+1)* Constants.PartSize);
+        }
+        int ret =  (int) (Math.log(maxNum) / Math.log(2) + 1);
+        return ret;
     }
 }
 
@@ -209,6 +215,14 @@ class Channel {
     }
 
     public int getLoad() {
+        int ret = 0;
+        for (Coded coded : codeds) {
+            ret+=coded.bits;
+        }
+        return ret;
+    }
+
+    public int getCodedNum() {
         return codeds.size();
     }
 }
@@ -364,9 +378,10 @@ class VKS {
     }
 }
 
-public class Paper {
+public class PaperCWDC {
 
-    public static void run() {
+    public static List<Integer> run(Map<Integer, Integer> density) {
+        List<Integer> load = new ArrayList<>();
         Solution st = new Solution();
         List<List<Integer>> combine = st.combine(Constants.K, Constants.r);
         List<Node> nodeList = new ArrayList<>();
@@ -414,6 +429,7 @@ public class Paper {
                         }
                     }
                     if (coded.files.isEmpty()) break;
+                    coded.bits = coded.calcBits(density);
                     map.get(j).add(coded);
                     uplink.put(coded);
                     col++;
@@ -431,6 +447,7 @@ public class Paper {
                 if(tmp.isEmpty()) break;
                 for (int b = 0; b < tmp.size()-1; b++) {
                     Coded merge = Coded.merge(tmp.get(b), tmp.get(b + 1));
+                    merge.bits = merge.calcBits(density);
                     medium.add(merge);
                     downlink.put(merge);
                 }
@@ -445,6 +462,18 @@ public class Paper {
         //channel.sort();
         uplink.printCodes(true);
         downlink.printCodes(false);
+        int upload = uplink.getLoad();
+        int download = downlink.getLoad();
+        int totalload = upload + download;
+        load.add(upload);
+        load.add(download);
+        load.add(totalload);
+        int upNum = uplink.getCodedNum();
+        int downNum = downlink.getCodedNum();
+        int totalNum = upNum + downNum;
+        load.add(upNum);
+        load.add(downNum);
+        load.add(totalNum);
         System.out.println();
 
         boolean finish = true;
@@ -462,22 +491,7 @@ public class Paper {
             nodeList.get(i).printAfterFinished();
         }
 
-    }
-
-    public static void main(String[] args) {
-        run();
-        /*int sum = 0;
-        int cnt = 0;
-        int load;
-        while (true) {
-            load = run();
-            if (load == -1) continue;
-            sum += load;
-            cnt++;
-            System.out.println("cnt: " + cnt);
-            if (cnt == 1) break;
-        }
-        System.out.println(sum * 1.0 / cnt);*/
+        return load;
     }
 
 }

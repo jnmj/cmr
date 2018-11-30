@@ -1,14 +1,15 @@
-package com.px.adhcmr;
+package com.px.p2.hcmr;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-
-class Constants{  
+class Constants{
 	public static int M=900;
 	public static int K=100;
 	public static int Q=K;
@@ -113,8 +114,6 @@ class Coded{
 	List<Character> targets = new ArrayList<>();
 	List<Integer> files = new ArrayList<>();
 	UpDownLoad upDownLoad = new UpDownLoad();
-	
-	/*
 	public void calcUpDownLoad(List<Node> nodeList) {
 		int intra=0;
 		Set<Integer> cross = new HashSet<>();
@@ -135,16 +134,15 @@ class Coded{
 			upDownLoad.down2+=cross.size();
 		}
 	}
-	*/
-	
+
+	@Override
+	public String toString() {
+		return "Coded [src=" + src + ", dsts=" + dsts + ", targets=" + targets + ", files=" + files + ", upDownLoad="
+				+ upDownLoad + "]";
+	}
 
 	public Coded() {}
 	
-	@Override
-	public String toString() {
-		return "Coded [src=" + src + ", dsts=" + dsts + ", targets=" + targets + ", files=" + files + "]";
-	}
-
 	public Coded(int src) {
 		this.src = src;
 	}
@@ -154,14 +152,6 @@ class Coded{
 		dsts.add(dst);
 	}
 	
-}
-
-class Relay{
-	int rack;
-	List<Coded> codeds = new ArrayList<>();
-	public Relay(int rack) {
-		this.rack = rack;
-	}
 }
 
 class Channel{
@@ -192,13 +182,12 @@ class Channel{
 		});
 	}
 	
-	/*
 	public void calcUpDownLoad(List<Node> nodeList) {
 		for(Coded coded: codeds) {
 			coded.calcUpDownLoad(nodeList);
 		}
 	}
-	*/
+	
 	public void printCodes() {
 		for(Coded coded: codeds) {
 			System.out.println(coded);
@@ -232,32 +221,29 @@ class Node{
 	}
 	
 	
-	public List<List<Coded>> decode(Coded coded) {
+	public Coded decode(Coded coded, List<Node> nodeList) {
 		int cnt=0;
 		for(int i=0;i<coded.files.size();i++) {
 			if(files.contains(coded.files.get(i))) cnt++;
 		}
-		List<List<Coded>> ret = new ArrayList<>();
-		ret.add(new ArrayList<>());
-		ret.add(new ArrayList<>());
 		if(cnt==coded.files.size()-1) {
 			for(int i=0;i<coded.files.size();i++) {
-				Coded code = new Coded();
-				code.files.add(coded.files.get(i));
-				code.targets.add(coded.targets.get(i));
 				if(!files.contains(coded.files.get(i))) {
-					code.src = (this.num-1)/(Constants.K/Constants.P);
-					ret.get(0).add(code);
-				}else {
-					code.src = this.num;
-					ret.get(1).add(code);
-					
+					if(nodeList.get(coded.targets.get(i)-'A').row==nodeList.get(num-1).row) {
+						Coded ret = new Coded();
+						ret.files.add(coded.files.get(i));
+						ret.targets.add(coded.targets.get(i));
+						ret.dsts.add(num);
+						return ret;
+					}else {
+						return null;
+					}
 				}
 			}
 		}else {
 			return null;
 		}
-		return ret;
+		return null;
 	}
 	
 	public void printFiles() {
@@ -309,20 +295,14 @@ public class Paper{
 	public static void run() {
 		
 		Channel crossChannel = new Channel();
-		Channel intraChannelP1Down = new Channel();
-		Channel intraChannelP1Up = new Channel();
-		Channel intraChannelP2 = new Channel();
-		
+		Channel intraChannel = new Channel();
 		List<Node> nodeList = new ArrayList<>();
 		for(int i=0;i<Constants.K;i++) {
 			nodeList.add(new Node(i+1));
 			nodeList.get(i).row = i/(Constants.K/Constants.P);
 			nodeList.get(i).col = i%(Constants.K/Constants.P);
 		}
-		List<Relay> relayList = new ArrayList<>();
-		for(int i=0;i<Constants.P;i++) {
-			relayList.add(new Relay(i));
-		}
+		
 		FileManager manager = new FileManager(nodeList);
 		manager.assign();
 		
@@ -378,57 +358,27 @@ public class Paper{
 						}
 						node.vkses.clear();
 					}
-					for(int j:singleLayerShufferCombine.get(i)) {
-						for(int x=0;x<currentCodeds.size();x++) {
-							if(currentCodeds.get(x).src==j) continue;
-							relayList.get((j-1)/(Constants.K/Constants.P)).codeds.add(currentCodeds.get(x));
+					for(int y:singleLayerShufferCombine.get(i)) {
+						for(int j=0;j<currentCodeds.size();j++) {
+							if(currentCodeds.get(j).src==nodeList.get(y-1).num) continue;
+							Coded decode = nodeList.get(y-1).decode(currentCodeds.get(j), nodeList);
+							if(decode!=null) {
+								nodeList.get(y-1).decodeResult.add(decode);
+							}
 						}
 					}
-					
 				}
 				
 			}
 		}
 		
+		//channel.sort();
 		System.out.println("\ncrossChannel Codeds");
+		crossChannel.calcUpDownLoad(nodeList);
 		//crossChannel.printCodes();
-		UpDownLoad crossLoad = new UpDownLoad();
-		crossLoad.up1 = crossLoad.up2 = crossLoad.down1 = crossChannel.codeds.size();
+		UpDownLoad crossLoad = crossChannel.getLoad();
 		System.out.println("\ncrossLoad:");
 		System.out.println(crossLoad);
-		
-		
-		
-		for(int i=0;i<Constants.P;i++) {
-			for(int j=0;j<Constants.K/Constants.P;j++) {
-				for(int x=0;x<relayList.get(i).codeds.size();x++) {
-					Node node = nodeList.get(i*Constants.K/Constants.P+j);
-					List<List<Coded>> decode = node.decode(relayList.get(i).codeds.get(x));
-					if(decode!=null) {
-						intraChannelP1Up.codeds.addAll(decode.get(1));
-						intraChannelP1Down.codeds.add(decode.get(0).get(0));
-					}
-				}
-			}
-			for(int j=0;j<Constants.K/Constants.P;j++) {
-				Node node = nodeList.get(i*Constants.K/Constants.P+j);
-				for(int y=0;y<intraChannelP1Down.codeds.size();y++) {
-					if(intraChannelP1Down.codeds.get(y).targets.get(0)-'A'+1==node.num) {
-						node.decodeResult.add(intraChannelP1Down.codeds.get(y));
-					}
-				}
-			}
-		}
-		
-		System.out.println("\nintraChannelP1Up Codeds");
-		//intraChannelP1Up.printCodes();
-		System.out.println("\nintraChannelP1Down Codeds");
-		//intraChannelP1Down.printCodes();
-		UpDownLoad intraLoadP1 = new UpDownLoad();
-		intraLoadP1.up2 = intraChannelP1Up.codeds.size();
-		intraLoadP1.down2 = intraChannelP1Down.codeds.size();
-		System.out.println("\nintraLoadP1:");
-		System.out.println(intraLoadP1);
 		
 		
 		for(int i=0;i<Constants.P;i++) {
@@ -443,13 +393,21 @@ public class Paper{
 							coded.dsts.add(singleRackNodes.get(y).num);
 							coded.files.add(singleRackNodes.get(j).files.get(x));
 							coded.targets.add((char) ('A'+singleRackNodes.get(y).num-1));
-							intraChannelP2.put(coded);
+							intraChannel.put(coded);
 							currentRackCodeds.add(coded);
 						}
 					}
 				}
-				
+				for(int x=0;x<singleRackNodes.get(j).decodeResult.size();x++) {
+					Coded coded = singleRackNodes.get(j).decodeResult.get(x);
+					if(coded.targets.get(0)-'A'+1==coded.dsts.get(0)) continue;
+					coded.src = singleRackNodes.get(j).num;
+					coded.dsts.set(0, coded.targets.get(0)-'A'+1);
+					intraChannel.put(coded);
+					currentRackCodeds.add(coded);
+				}
 			}
+			
 			for(int j=0;j<singleRackNodes.size();j++) {
 				for(int x=0;x<currentRackCodeds.size();x++) {
 					if(currentRackCodeds.get(x).dsts.get(0)==singleRackNodes.get(j).num) {
@@ -459,18 +417,18 @@ public class Paper{
 			}
 		}
 		
-		System.out.println("\nintraChannelP2 Codeds");
-		//intraChannelP2.printCodes();
-		UpDownLoad intraLoadP2 = new UpDownLoad();
-		intraLoadP2.up2 = intraLoadP2.down2 = intraChannelP2.codeds.size();
-		System.out.println("\nintraLoadP2:");
-		System.out.println(intraLoadP2);
+		System.out.println("\nintraChannel Codeds");
+		intraChannel.calcUpDownLoad(nodeList);
+		//intraChannel.printCodes();
+		UpDownLoad intraLoad = intraChannel.getLoad();
+		System.out.println("\nintraLoad:");
+		System.out.println(intraLoad);
 		
 		UpDownLoad totalLoad = new UpDownLoad();
-		totalLoad.up1 = crossLoad.up1+intraLoadP1.up1+intraLoadP2.up1;
-		totalLoad.up2 = crossLoad.up2+intraLoadP1.up2+intraLoadP2.up2;
-		totalLoad.down1 = crossLoad.down1+intraLoadP1.down1+intraLoadP2.down1;
-		totalLoad.down2 = crossLoad.down2+intraLoadP1.down2+intraLoadP2.down2;
+		totalLoad.up1 = crossLoad.up1+intraLoad.up1;
+		totalLoad.up2 = crossLoad.up2+intraLoad.up2;
+		totalLoad.down1 = crossLoad.down1+intraLoad.down1;
+		totalLoad.down2 = crossLoad.down2+intraLoad.down2;
 		System.out.println("\ntotalLoad:");
 		System.out.println(totalLoad);
 		System.out.println("\ntotalIntraLoad:");
@@ -495,11 +453,6 @@ public class Paper{
 		Solution st = new Solution();
 		System.out.println("\n公式计算: ");
 		System.out.println(Math.round(st.calcIntraTotalLoad(Constants.K, Constants.P, Constants.Q, Constants.M, Constants.r)));
-		System.out.println("\n公式计算增益: ");
-		System.out.println(Math.round(st.calcIntraTotalLoadGain(Constants.K, Constants.P, Constants.Q, Constants.M, Constants.r)));
-		System.out.println("\n公式计算增益2: ");
-		System.out.println(Math.round(st.calcIntraTotalLoadGain2(Constants.K, Constants.P, Constants.Q, Constants.M, Constants.r)));
-
 	}      
 	
 }

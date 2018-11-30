@@ -1,12 +1,27 @@
-package com.px.ldcmr;
+package com.px.p1.ldcmr;
+
+import com.px.p1.Constants;
+import com.px.p1.Solution;
 
 import java.util.*;
 
-class Constants {
-    public static int M = 24;
-    public static int K = 4;
-    public static int Q = K;
-    public static int r = 2;
+class LDCMR_Constants {
+    public static int ratio;
+    static {
+        Solution st = new Solution();
+        ratio = Constants.M/st.combine(Constants.K, Constants.r).size();
+    }
+
+    public static int M = Constants.M/ratio;
+    public static int K = Constants.K;
+    public static int Q = Constants.Q;
+    public static int r = Constants.r;
+    public static int PartSize = Constants.PartSize*ratio;
+
+    static {
+        System.out.println("M: " + M);
+        System.out.println("PartSize: " + PartSize);
+    }
 }
 
 class File {
@@ -89,7 +104,7 @@ class FileManager {
     }
 
     public void fillNodes(List<Node> nodeList, List<List<Integer>> combine) {
-        for (int i = 0; i < Constants.K; i++) {
+        for (int i = 0; i < LDCMR_Constants.K; i++) {
             nodeList.add(new Node(i + 1));
         }
         for (int i = 0; i < combine.size(); i++) {
@@ -99,13 +114,13 @@ class FileManager {
         }
 
         System.out.println("\nnode MappedFiles:");
-        for (int i = 0; i < Constants.K; i++) {
+        for (int i = 0; i < LDCMR_Constants.K; i++) {
             nodeList.get(i).printMappedFiles();
         }
     }
 
     public void updateNodes(List<Node> nodeList) {
-        for (int i = 0; i < Constants.K; i++) {
+        for (int i = 0; i < LDCMR_Constants.K; i++) {
             nodeList.get(i).updateMappedFiles(this);
         }
     }
@@ -113,8 +128,8 @@ class FileManager {
     public FileManager(List<List<Integer>> combine, List<Node> nodeList) {
         this.nodeList = nodeList;
         this.partNum = combine.size();
-        partSize = Constants.M / partNum;
-        for (int i = 0; i < Constants.M; i++) {
+        partSize = LDCMR_Constants.M / partNum;
+        for (int i = 0; i < LDCMR_Constants.M; i++) {
             allFile.add(new File(i + 1));
         }
         for (int i = 0; i < combine.size(); i++) {
@@ -136,6 +151,7 @@ class FileManager {
 
 class Coded {
     int src;
+    int bits;
     List<Character> targets = new ArrayList<>();
     List<Integer> files = new ArrayList<>();
 
@@ -153,7 +169,7 @@ class Coded {
 
     @Override
     public String toString() {
-        return "Coded[src=" + src + ", t=" + targets + ", f=" + files + "]";
+        return "Coded[src=" + src + ", t=" + targets + ", f=" + files + ", bits=" + bits + "]";
     }
 
     public static Coded merge(Coded c1, Coded c2) {
@@ -168,6 +184,15 @@ class Coded {
             coded.files.add(c2.files.get(i));
         }
         return coded;
+    }
+
+    public int calcBits(Map<Integer, Integer> density) {
+        int maxNum =0;
+        for (int i = 0; i < targets.size(); i++) {
+            maxNum = Math.max(maxNum, density.get(targets.get(i)-'a'+1)*LDCMR_Constants.PartSize);
+        }
+        int ret =  (int) (Math.log(maxNum) / Math.log(2) + 1);
+        return ret;
     }
 }
 
@@ -209,6 +234,14 @@ class Channel {
     }
 
     public int getLoad() {
+        int ret = 0;
+        for (Coded coded : codeds) {
+            ret+=coded.bits;
+        }
+        return ret;
+    }
+
+    public int getCodedNum() {
         return codeds.size();
     }
 }
@@ -276,7 +309,7 @@ class Node {
     }
 
     public Integer decodeRandomSingle(Coded coded) {
-        if(mappedFiles.size()+decodeResult.size()== Constants.M) return -2;
+        if(mappedFiles.size()+decodeResult.size()== LDCMR_Constants.M) return -2;
         int cnt = 0;
         for (int i = 0; i < coded.files.size(); i++) {
             if (mappedFiles.contains(coded.files.get(i))
@@ -322,7 +355,7 @@ class Node {
 
     public boolean checkFinish() {
         boolean ret = true;
-        for (int i = 1; i <= Constants.M; i++) {
+        for (int i = 1; i <= LDCMR_Constants.M; i++) {
             if (mappedFiles.contains(i) || decodeResult.contains(i)) {
                 continue;
             } else {
@@ -364,17 +397,21 @@ class VKS {
     }
 }
 
-public class Paper {
+public class PaperLDCMR {
 
-    public static void run() {
+    public static List<Integer> run(Map<Integer, Integer> density) {
+        List<Integer> load = new ArrayList<>();
         Solution st = new Solution();
-        List<List<Integer>> combine = st.combine(Constants.K, Constants.r);
+        List<List<Integer>> combine = st.combine(LDCMR_Constants.K, LDCMR_Constants.r);
         List<Node> nodeList = new ArrayList<>();
         FileManager manager = new FileManager(combine, nodeList);
         Channel uplink = new Channel();
         Channel downlink = new Channel();
-
-        List<List<Integer>> shuffleCombine = st.combine(Constants.K, Constants.r + 1);
+        Map<Integer, Integer> shuffleCount = new HashMap<>();
+        for (int i = 1; i <= LDCMR_Constants.K; i++) {
+            shuffleCount.put(i, 0);
+        }
+        List<List<Integer>> shuffleCombine = st.combine(LDCMR_Constants.K, LDCMR_Constants.r + 1);
         for (int i = 0; i < shuffleCombine.size(); i++) {
             Map<Integer, Integer> count = new HashMap<>();
             for (int y = 0; y < shuffleCombine.get(i).size(); y++) {
@@ -390,6 +427,12 @@ public class Paper {
                 }
                 List<File> subFiles = manager.combine2file.get(other);
                 if (subFiles == null || subFiles.size() == 0) continue;
+                Collections.sort(other, (o1,o2)->{
+                    if(o1.equals(o2)) return 0;
+                    int count1 = shuffleCount.get(o1);
+                    int count2 = shuffleCount.get(o2);
+                    return (count1==count2)?(o1-o2):(count1-count2);
+                });
                 for (int l = 0; l < subFiles.size(); l++) {
                     nodeList.get(other.get(l % other.size()) - 1).vkses.get(count.get(other.get(l % other.size()))).add(new VKS(j, other.get(l % other.size()), subFiles.get(l)));
                 }
@@ -405,6 +448,12 @@ public class Paper {
             }
             for (int j : shuffleCombine.get(i)) {
                 Node node = nodeList.get(j - 1);
+                int cnt = 0;
+                for (int t = 0; t < node.vkses.size(); t++) {
+                    List<VKS> vks = node.vkses.get(t);
+                    if(!vks.isEmpty()) cnt++;
+                }
+                shuffleCount.put(j, shuffleCount.get(j)+cnt);
                 int col = 0;
                 while (true) {
                     Coded coded = new Coded(j);
@@ -414,6 +463,7 @@ public class Paper {
                         }
                     }
                     if (coded.files.isEmpty()) break;
+                    coded.bits = coded.calcBits(density);
                     map.get(j).add(coded);
                     uplink.put(coded);
                     col++;
@@ -431,6 +481,7 @@ public class Paper {
                 if(tmp.isEmpty()) break;
                 for (int b = 0; b < tmp.size()-1; b++) {
                     Coded merge = Coded.merge(tmp.get(b), tmp.get(b + 1));
+                    merge.bits = merge.calcBits(density);
                     medium.add(merge);
                     downlink.put(merge);
                 }
@@ -445,6 +496,18 @@ public class Paper {
         //channel.sort();
         uplink.printCodes(true);
         downlink.printCodes(false);
+        int upload = uplink.getLoad();
+        int download = downlink.getLoad();
+        int totalload = upload + download;
+        load.add(upload);
+        load.add(download);
+        load.add(totalload);
+        int upNum = uplink.getCodedNum();
+        int downNum = downlink.getCodedNum();
+        int totalNum = upNum + downNum;
+        load.add(upNum);
+        load.add(downNum);
+        load.add(totalNum);
         System.out.println();
 
         boolean finish = true;
@@ -462,22 +525,7 @@ public class Paper {
             nodeList.get(i).printAfterFinished();
         }
 
-    }
-
-    public static void main(String[] args) {
-        run();
-        /*int sum = 0;
-        int cnt = 0;
-        int load;
-        while (true) {
-            load = run();
-            if (load == -1) continue;
-            sum += load;
-            cnt++;
-            System.out.println("cnt: " + cnt);
-            if (cnt == 1) break;
-        }
-        System.out.println(sum * 1.0 / cnt);*/
+        return load;
     }
 
 }

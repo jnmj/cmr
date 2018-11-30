@@ -1,4 +1,4 @@
-package com.px.hcmr;
+package com.px.p2.hcmr;
 
 import java.util.HashMap;
 import java.util.Map;
